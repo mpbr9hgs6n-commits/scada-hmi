@@ -132,7 +132,10 @@ docker compose up -d
 ## 联系
 
 张家口陆祺智控工程技术有限责任公司
-电话：0313-6731626 ／ 13831341435
+
+技术交流 / 问题反馈，扫码加入 QQ 群：
+
+<img src="docs/assets/qq-group.png" width="220" alt="QQ 群二维码">
 
 ---
 
@@ -235,4 +238,7 @@ Third-party component licenses are listed in [THIRD-PARTY-NOTICES.md](THIRD-PART
 ## Contact
 
 Zhangjiakou Luche Intelligent Control Engineering Technology Co., Ltd.
-Tel: +86 313-6731626 ／ +86 13831341435
+
+Technical discussion / issue reporting — scan to join our QQ group:
+
+<img src="docs/assets/qq-group.png" width="220" alt="QQ group QR code">
