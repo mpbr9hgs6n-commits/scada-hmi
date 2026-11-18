@@ -1,0 +1,259 @@
+version: "3.9"
+name: plant
+
+x-log: &log
+  logging:
+    driver: json-file
+    options: { max-size: "20m", max-file: "5" }
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: plant-mysql
+    restart: unless-stopped
+    <<: *log
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PWD:?请先在 .env 里设置 MYSQL_ROOT_PWD}
+      MYSQL_DATABASE: plant
+      TZ: Asia/Shanghai
+      LANG: C.UTF-8
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_0900_ai_ci
+      --default-time-zone=+08:00
+      --innodb-buffer-pool-size=512M
+      --max-connections=300
+      --slow-query-log=1
+      --slow-query-log-file=/var/lib/mysql/slow.log
+      --long-query-time=2
+    volumes:
+      - /opt/plant-data/mysql:/var/lib/mysql
+      - /opt/plant/backend/sql:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:3306:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [default]
+
+  redis:
+    image: redis:7-alpine
+    container_name: plant-redis
+    restart: unless-stopped
+    <<: *log
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
+    volumes:
+      - /opt/plant-data/redis:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [default]
+
+  tdengine:
+    image: tdengine/tdengine:3.3.5.0
+    container_name: plant-tdengine
+    hostname: plant-tdengine
+    restart: unless-stopped
+    <<: *log
+    # 2026-11-07 安全整改：原为 network_mode: host，6030/6041/6060 全网监听。
+    # 改为 bridge 后宿主机只保留 127.0.0.1:6041（供本机 curl/verify/backup 用），
+    # 6030（taosd）与 6060（taos-explorer Web 控制台）不再对外暴露。
+    # dnode 端点仍是 localhost:6030（容器内自洽），所以不触发端点变更。
+    environment:
+      TZ: Asia/Shanghai
+      TAOS_FQDN: localhost
+      # 供 healthcheck 内的 shell 展开；值来自 .env，不在本文件写明文
+      TDENGINE_PWD: ${TDENGINE_PWD:?TDENGINE_PWD 未设置，请先在 .env 里配置}
+    volumes:
+      - /opt/plant-data/tdengine:/var/lib/taos
+      - /opt/plant-data/tdengine-log:/var/log/taos
+    ports:
+      - "127.0.0.1:6041:6041"   # 只绑回环：外部网段连不上 REST
+    healthcheck:
+      # 改密后 taos CLI 不再免密，healthcheck 改用 REST + 口令
+      test: ["CMD-SHELL", "curl -sf -u root:$$TDENGINE_PWD --data-raw 'select server_version()' http://127.0.0.1:6041/rest/sql | grep -q '\"code\":0' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+    networks: [default]
+
+  zlm:
+    image: zlmediakit/zlmediakit:master
+    container_name: plant-zlm
+    restart: unless-stopped
+    <<: *log
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - /opt/plant-data/zlm:/opt/media/bin/www
+      - /opt/plant/nginx/zlm.conf:/opt/media/conf/config.ini
+    ports:
+      # 安全整改 03：只留管理 API 给本机（巡检脚本用），RTSP/RTMP/WebRTC 全部不再映射。
+      # 浏览器播放走 nginx 的 /live/（HTTP-FLV 同源反代），8554 对外没有任何用途。
+      - "127.0.0.1:8085:80"
+    networks: [default]
+
+  backend:
+    # 09 改造：build context 提到仓库根，shared/addr.py（全系统唯一的地址解析）
+    # 构建时拷进 backend/app/core/addr.py —— 后端校验与网关采集共用同一份源码
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: plant-backend
+    restart: unless-stopped
+    <<: *log
+    env_file: .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # P3 组态背景图：容器重建后图片不能丢，必须落到宿主机
+      - /opt/plant-data/uploads:/data/uploads
+      # P8 画面缩略图（400×225 PNG，存文件不塞 json）
+      - /opt/plant-data/thumbs:/data/thumbs
+      # 第 04 章：MySQL 备份文件（容器重建不丢，走宿主机目录）
+      - /opt/plant-data/backup:/data/backup
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tdengine:
+        condition: service_healthy
+    expose: ["8000"]
+    networks: [default]
+
+  gateway:
+    # 同上：shared/addr.py 拷进 /app/addr.py，collector 直接 import
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: plant-gateway
+    restart: unless-stopped
+    <<: *log
+    env_file: .env
+    # 本网关只采归属自己的站点（site.gateway_id）。多网关时复制这个服务块，
+    # 改 container_name / GATEWAY_ID / TDENGINE_REST / 端口，见文件末尾示例。
+    environment:
+      GATEWAY_ID: gw1
+      TDENGINE_REST: ${GATEWAY1_TDENGINE:-http://tdengine:6041}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tdengine:
+        condition: service_healthy
+    expose: ["8090"]
+    ports:
+      - "127.0.0.1:8090:8090"
+    networks: [default]
+
+  # ============ 第二套：西区1号（gateway_id = xiqv1）============
+  # 每个网关一套独立 TDengine，共享 MySQL / Redis。
+  # 新增网关就照这个块复制，改 4 处：服务名后缀、container_name、GATEWAY_ID、端口。
+  tdengine-xiqv1:
+    image: tdengine/tdengine:3.3.5.0
+    container_name: plant-tdengine-xiqv1
+    hostname: plant-tdengine-xiqv1
+    restart: unless-stopped
+    <<: *log
+    environment:
+      TZ: Asia/Shanghai
+      TAOS_FQDN: localhost
+    volumes:
+      - /opt/plant-data/tdengine-xiqv1:/var/lib/taos
+      - /opt/plant-data/tdengine-xiqv1-log:/var/log/taos
+    ports:
+      - "127.0.0.1:6042:6041"    # 与主实例的 6041 错开
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:6041/-/ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks: [default]
+
+  gateway-xiqv1:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: plant-gateway-xiqv1
+    restart: unless-stopped
+    <<: *log
+    env_file: .env
+    environment:
+      GATEWAY_ID: xiqv1
+      TDENGINE_REST: http://tdengine-xiqv1:6041
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tdengine-xiqv1:
+        condition: service_healthy
+    expose: ["8090"]
+    ports:
+      - "127.0.0.1:8091:8090"    # 与主网关的 8090 错开
+    networks: [default]
+
+  nginx:
+    image: nginx:alpine
+    container_name: plant-nginx
+    restart: unless-stopped
+    <<: *log
+    volumes:
+      - /opt/plant/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /opt/plant/frontend/dist:/usr/share/nginx/html:ro
+    ports: ["80:80"]
+    depends_on: [backend, zlm]
+    networks: [default]
+
+networks:
+  default:
+    name: plant-net
+
+# ============================================================================
+# 多网关扩展示例（复制上面 gateway 块，改 4 个地方）
+#
+#   gateway-gw2:
+#     build: { context: ., dockerfile: gateway/Dockerfile }
+#     container_name: gateway-gw2
+#     restart: unless-stopped
+#     <<: *log
+#     env_file: .env
+#     environment:
+#       GATEWAY_ID: gw2                                   # ← 改这个
+#       TDENGINE_REST: http://tdengine-gw2:6041           # ← 它专属的历史库
+#     depends_on:
+#       mysql: { condition: service_healthy }
+#       redis: { condition: service_healthy }
+#       tdengine-gw2: { condition: service_healthy }
+#     expose: ["8090"]
+#     ports: ["127.0.0.1:8091:8090"]                      # ← 换宿主机端口
+#     networks: [default]
+#
+#   tdengine-gw2:                                         # 每个网关一套独立 TDengine
+#     image: tdengine/tdengine:3.3.2.0
+#     container_name: tdengine-gw2
+#     restart: unless-stopped
+#     <<: *log
+#     environment:
+#       TAOS_FQDN: tdengine-gw2
+#     volumes:
+#       - /opt/plant-data/tdengine-gw2:/var/lib/taos
+#     expose: ["6041"]
+#     networks: [default]
+#
+# 同时要在【网关管理】里登记 gw2，tdengine_url 填 http://tdengine-gw2:6041，
+# 然后到站点管理把要迁过去的站点改到 gw2。数据库（MySQL/Redis）继续共享。
+# ============================================================================

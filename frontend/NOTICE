@@ -1,0 +1,36 @@
+本项目的组态图库视觉基准来自 scada-deck（提示词 11）。
+
+- 原项目：https://github.com/agentthink/scada-deck
+- 许可：MIT License（见下方原文）
+- 用途：设计 token（颜色/字号/间距）、面板/KPI 卡样式、工艺图元视觉（泵/风机/格栅/
+  输送机/管件的状态色与动画节奏）、状态色语义（绿=正常 琥珀=预警 红=报警 灰=离线
+  青蓝=主数据）与八条实战原则中的第 3/4/6/8 条（介质真实颜色、设备不整体染色、
+  标签分级、离线显示 -- 不显示 0）。
+- 未使用其代码：本项目组态渲染器为自有实现（Vue 3 + DOM/SVG），未复制 scada-deck
+  的 HTML/CSS/JS 文件；其 scenarios 目录仅作视觉参考与截图对比。
+- 另：scada-hmi-builder 的八条现场反馈原则只取思路（该仓库为 AGPL-3.0，代码不可
+  进入本项目，本仓库也不包含其任何代码）。
+
+------------
+
+MIT License
+
+Copyright (c) 2026 agentthink
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

@@ -1,0 +1,31 @@
+{
+  "currentSite": "S002",
+  "width": 1600,
+  "height": 900,
+  "bg": "#071017",
+  "items": [
+    { "name": "标题", "type": "text", "x": 480, "y": 18, "w": 640, "h": 42, "text": "污泥回流泵站操作终端", "fontSize": 28, "bold": true, "color": "#f0f5fa", "fillMode": "none", "strokeWidth": 0, "align": "center" },
+    { "name": "主面板", "type": "panel", "x": 20, "y": 76, "w": 1560, "h": 520, "text": "回流泵组" },
+    { "name": "污泥池", "type": "tank", "x": 60, "y": 150, "w": 150, "h": 400, "label": "污泥池", "min": 0, "max": 5, "unit": "m", "medium": "sludge", "showScale": true, "decimals": 2, "var": { "site": "S002", "point": "LEVEL" } },
+    { "name": "吸泥管", "type": "pipe", "x": 220, "y": 330, "w": 160, "h": 22, "medium": "sludge", "flow": true, "var": { "site": "S002", "point": "PUMP1_RUN" } },
+    { "name": "回流泵1", "type": "pump_h", "x": 400, "y": 280, "w": 130, "h": 110, "label": "1 号回流泵", "runValue": 1, "faultValue": 2, "var": { "site": "S002", "point": "PUMP1_RUN" } },
+    { "name": "回流泵2", "type": "pump_h", "x": 400, "y": 440, "w": 130, "h": 110, "label": "2 号回流泵", "runValue": 1, "faultValue": 2, "var": { "site": "S002", "point": "PUMP1_RUN" } },
+    { "name": "回流阀", "type": "valve", "x": 570, "y": 310, "w": 56, "h": 56, "label": "回流阀", "openValue": 1, "var": { "site": "S002", "point": "VALVE1" } },
+    { "name": "回流管", "type": "pipe", "x": 640, "y": 330, "w": 220, "h": 22, "medium": "sludge", "flow": true, "var": { "site": "S002", "point": "PUMP1_RUN" } },
+    { "name": "弯头", "type": "pipe_elbow", "x": 870, "y": 240, "w": 110, "h": 110, "medium": "sludge", "var": { "site": "S002", "point": "PUMP1_RUN" } },
+    { "name": "垂直上行管", "type": "pipe_v", "x": 958, "y": 120, "w": 22, "h": 130, "medium": "sludge", "var": { "site": "S002", "point": "PUMP1_RUN" } },
+    { "name": "生化池回流口", "type": "tank", "x": 1040, "y": 150, "w": 150, "h": 260, "label": "生化池", "min": 0, "max": 5, "unit": "m", "medium": "influent", "decimals": 2, "var": { "site": "S002", "point": "LEVEL" } },
+    { "name": "KPI_污泥浓度", "type": "kpi", "x": 1240, "y": 150, "w": 200, "h": 90, "text": "进水 PH", "unit": "pH", "decimals": 2, "accentColor": "#b06bd4", "var": { "site": "S002", "point": "PH" } },
+    { "name": "KPI_回流流量", "type": "kpi", "x": 1240, "y": 260, "w": 200, "h": 90, "text": "出水流量", "unit": "m3/h", "decimals": 1, "accentColor": "#2fd67e", "var": { "site": "S002", "point": "FLOW" } },
+    { "name": "环形_回流比", "type": "ring", "x": 1270, "y": 380, "w": 140, "h": 150, "unit": "%", "min": 0, "max": 100, "decimals": 1, "var": { "site": "S002", "point": "VALVE1" } },
+    { "name": "底部面板", "type": "panel", "x": 20, "y": 620, "w": 1560, "h": 250, "text": "运行参数" },
+    { "name": "进度_溶解氧", "type": "progress", "x": 50, "y": 668, "w": 300, "h": 44, "text": "溶解氧", "unit": "mg/L", "min": 0, "max": 10, "decimals": 2, "var": { "site": "S002", "point": "DO" } },
+    { "name": "进度_液位", "type": "progress", "x": 50, "y": 730, "w": 300, "h": 44, "text": "集水井液位", "unit": "m", "min": 0, "max": 5, "decimals": 2, "accentColor": "#6b7a55", "var": { "site": "S002", "point": "LEVEL" } },
+    { "name": "徽章_泵状态", "type": "statusbadge", "x": 420, "y": 668, "w": 210, "h": 34, "text": "1 号回流泵", "goodText": "运行中", "badText": "无数据", "var": { "site": "S002", "point": "PUMP1_RUN" } },
+    { "name": "徽章_阀状态", "type": "statusbadge", "x": 420, "y": 712, "w": 210, "h": 34, "text": "回流阀", "goodText": "已开启", "badText": "无数据", "var": { "site": "S002", "point": "VALVE1" } },
+    { "name": "数值_PH", "type": "value", "x": 420, "y": 756, "w": 130, "h": 60, "label": "PH", "unit": "pH", "decimals": 2, "var": { "site": "S002", "point": "PH" } },
+    { "name": "运行灯1", "type": "lamp", "x": 700, "y": 668, "w": 90, "h": 90, "label": "泵1", "onValue": 1, "var": { "site": "S002", "point": "PUMP1_RUN" } },
+    { "name": "运行灯2", "type": "lamp", "x": 810, "y": 668, "w": 90, "h": 90, "label": "泵2", "onValue": 1, "var": { "site": "S002", "point": "PUMP1_RUN" } },
+    { "name": "趋势_溶解氧", "type": "control", "control": "trend", "x": 940, "y": 650, "w": 600, "h": 200 }
+  ]
+}

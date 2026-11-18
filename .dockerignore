@@ -1,0 +1,17 @@
+# 09 起 build context 提到仓库根（shared/addr.py 要进两个镜像），
+# 前端/文档/nginx 产物不进镜像，加快构建上下文传输
+frontend/
+docs/
+nginx/
+plant
+verify.sh
+verify.sh.bak*
+compose.yml.bak*
+backup.sh.bak*
+check_*.py
+*.md
+__pycache__/
+*.pyc
+.env.bak*
+# 开发期调试脚本/归档，不进任何镜像
+_debug/
